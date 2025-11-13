@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quantel AI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .chat-container::-webkit-scrollbar { width: 8px; }
+        .chat-container::-webkit-scrollbar-track { background: #202123; }
+        .chat-container::-webkit-scrollbar-thumb { background: #5A5A66; border-radius: 4px; }
+        .sidebar-list::-webkit-scrollbar { width: 4px; }
+        .sidebar-list::-webkit-scrollbar-track { background: #202123; }
+        .sidebar-list::-webkit-scrollbar-thumb { background: #40414F; border-radius: 2px; }
+
+        .message-box { padding: 24px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
+        .quantel-gradient { background-image: linear-gradient(to right, #6366F1, #8B5CF6); }
+        .input-shadow { box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 10px 10px -5px rgba(0, 0, 0, 0.2); }
+        
+        .markdown-content pre {
+            background-color: #282c34;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            overflow-x: auto;
+            margin: 1rem 0;
+            line-height: 1.4;
+        }
+        .markdown-content code:not([class]) {
+            background-color: #40414F;
+            padding: 2px 4px;
+            border-radius: 4px;
+            color: #ccc;
+            font-size: 0.9em;
+        }
+        .markdown-content h1, .markdown-content h2 {
+            font-weight: 600;
+            margin: 1.5rem 0 0.5rem;
+        }
+        .markdown-content h1 { font-size: 1.5em; }
+        .markdown-content h2 { font-size: 1.25em; }
+        .markdown-content p, .markdown-content ul, .markdown-content ol {
+            margin: 0.5rem 0;
+        }
+
+        /* --- 1. CSS: Add Title Typing Animation --- */
+        @keyframes blink {
+            50% { opacity: 0; }
+        }
+
+        .typing-indicator {
+            display: inline-block;
+            width: 3px;
+            height: 10px;
+            background-color: white;
+            margin-left: 2px;
+            animation: blink 1s infinite;
+        }
+
+        .code-container {
+            position: relative;
+        }
+
+        .copy-button {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            padding: 0.25rem 0.5rem;
+            background-color: #3f3f46;
+            color: #d1d5db;
+            border: none;
+            border-radius: 0.375rem;
+            cursor: pointer;
+            font-size: 0.875rem;
+            transition: background-color 0.2s;
+        }
+
+        .copy-button:hover {
+            background-color: #52525b;
+        }
+    </style>
+</head>
+<body class="bg-[#343541] text-gray-100 h-screen flex antialiased">
+
+    <aside id="sidebar" class="w-64 bg-[#202123] flex flex-col border-r border-gray-700 flex-shrink-0">
+        <div class="h-16 px-4 py-3 flex items-center justify-between border-b border-gray-700">
+            <div class="flex items-center space-x-2">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6 text-indigo-400">
+                    <path fill-rule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25Zm-3.09 8.655a.75.75 0 0 0 .919.497 44.373 44.373 0 0 1 5.923 1.258.75.75 0 0 0 .919-.497 12.04 12.04 0 0 0 1.258-5.923.75.75 0 0 0-.497-.919 44.373 44.373 0 0 1-5.923-1.258.75.75 0 0 0-.919.497 12.04 12.04 0 0 0-1.258 5.923Z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-xl font-bold">Quantel</span>
+            </div>
+        </div>
+
+        <div class="p-4 space-y-3">
+            <button class="quantel-gradient hover:opacity-90 w-full text-white text-sm font-medium py-2 rounded-xl transition duration-200 shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" onclick="newChat()">
+                + New Chat
+            </button>
+            <span id="model-selector-container" class="relative block">
+                <select id="model-selector" class="bg-gray-700 w-full text-sm py-2 px-3 rounded-md border border-indigo-600/50 focus:outline-none focus:ring-2 focus:ring-indigo-500/80 transition duration-150 appearance-none pr-8">
+                    <option value="" disabled selected>Loading Models...</option>
+                </select>
+                <svg class="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+            </span>
+            <p class="text-xs text-gray-400 text-center flex items-center justify-center space-x-1">
+                <span>Model:</span>
+                <span class="font-semibold text-white" id="current-model-name">...</span>
+                
+                <div class="relative">
+                    <button id="model-info-button" class="text-gray-400 hover:text-indigo-400 transition" 
+                            title="Model Information" onclick="document.getElementById('model-info-tooltip').classList.toggle('hidden')">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0ZM8.94 11.23a.75.75 0 1 0-1.06-1.06l-.72 1.35C6.01 12.08 5 13.06 5 14.25A2.25 2.25 0 0 0 7.25 16h5.5A2.25 2.25 0 0 0 15 14.25c0-1.19-1.01-2.17-2.16-2.58l-.72-1.35a.75.75 0 0 0-1.06 1.06ZM10 6a.75.75 0 0 0-.75.75v.5a.75.75 0 0 0 1.5 0v-.5A.75.75 0 0 0 10 6Z" clip-rule="evenodd" />
+                        </svg>
+                    </button>
+                    <div id="model-info-tooltip" class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 p-3 w-64 bg-[#202123] text-white text-xs rounded-lg shadow-xl border border-indigo-500/50 z-50 hidden" 
+                        style="min-width: 250px; white-space: normal;">
+                        <p id="model-description-text">Generating info...</p>
+                    </div>
+                </div>
+            </p>
+        </div>
+
+        <div id="conversation-list" class="sidebar-list flex-grow overflow-y-auto p-2 space-y-1">
+            <p class="text-xs text-gray-500 p-2">No conversations yet.</p>
+        </div>
+    </aside>
+
+    <main class="flex-grow flex flex-col items-center overflow-hidden">
+        <div id="chat-messages" class="chat-container w-full max-w-3xl overflow-y-auto pt-4 pb-32 flex-grow **ml-64**">
+            <div id="welcome-screen" class="h-full flex flex-col justify-center items-center text-gray-400 p-4 transition-opacity duration-300">
+                <div class="text-4xl font-extrabold mb-8 text-white tracking-tight">Where should we begin?</div>
+                <div class="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-2xl w-full">
+                    <div class="bg-gray-700/50 p-4 rounded-xl hover:bg-gray-700/80 cursor-pointer text-sm text-center transition duration-200 border border-gray-700 hover:border-indigo-500/50" onclick="document.getElementById('prompt-input').value = 'Explain how AI language models work in simple terms.'; document.getElementById('prompt-input').focus();">
+                        <p class="font-medium text-white mb-1">Explain AI</p>
+                        <p class="text-xs text-gray-400">Concepts simplified</p>
+                    </div>
+                    <div class="bg-gray-700/50 p-4 rounded-xl hover:bg-gray-700/80 cursor-pointer text-sm text-center transition duration-200 border border-gray-700 hover:border-indigo-500/50" onclick="document.getElementById('prompt-input').value = 'Give me a recipe for a fun, quick, and healthy meal.'; document.getElementById('prompt-input').focus();">
+                        <p class="font-medium text-white mb-1">Quick Meal Idea</p>
+                        <p class="text-xs text-gray-400">Fun and simple recipes</p>
+                    </div>
+                    <div class="bg-gray-700/50 p-4 rounded-xl hover:bg-gray-700/80 cursor-pointer text-sm text-center transition duration-200 border border-gray-700 hover:border-indigo-500/50" onclick="document.getElementById('prompt-input').value = 'Write a short story about a space explorer finding a new planet.'; document.getElementById('prompt-input').focus();">
+                        <p class="font-medium text-white mb-1">Creative Writing</p>
+                        <p class="text-xs text-gray-400">Generate a story</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="fixed bottom-[130px] right-4 md:right-[calc(50vw-170px)] max-w-3xl mx-auto z-10">
+            <button
+                id="edit-persona-btn"
+                onclick="openSystemPromptModal()"
+                class="flex items-center text-xs font-semibold px-3 py-1.5 rounded-full bg-gray-700 text-indigo-400 hover:bg-gray-600 transition duration-150 shadow-md"
+            >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4 mr-1">
+                    <path d="M21.731 2.269a2.625 2.625 0 0 0-3.712 0l-14.714 14.714A2.625 2.625 0 0 0 3.298 20.39v4.242h4.242a2.625 2.625 0 0 0 1.855-.769l14.714-14.714a2.625 2.625 0 0 0 0-3.712ZM14.93 5.07l2.843 2.844L6.85 18.844l-2.843-2.843 10.923-10.931Z" />
+                </svg>
+                Edit Persona
+            </button>
+        </div>
+
+
+        <footer class="fixed bottom-0 left-64 right-0 p-4 bg-[#343541] z-10">
+            <div class="max-w-3xl mx-auto">
+                <div id="image-preview-container" class="mb-2 hidden">
+                    <div id="image-preview" class="relative inline-block border border-gray-600 rounded-xl overflow-hidden shadow-xl">
+                        <img src="" alt="Attached Image Preview" class="max-h-32 w-auto object-contain">
+                        <button onclick="removeAttachment()" class="absolute top-1 right-1 p-1 bg-red-600 rounded-full text-white/90 hover:bg-red-700 transition" title="Remove Attachment">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4"><path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z" /></svg>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="relative flex items-end input-shadow rounded-xl">
+                    <input type="file" id="image-upload" accept="image/*" class="hidden" onchange="handleFileSelect(event)">
+                    
+                    <button onclick="document.getElementById('image-upload').click()" 
+                            id="attachment-button"
+                            class="absolute left-2 bottom-2 p-2 rounded-lg text-gray-400 hover:text-white transition duration-200" 
+                            title="Attach Image (Max 1)">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6">
+                            <path d="M11.47 1.72a.75.75 0 0 0-.94 0L4.77 5.77a.75.75 0 0 0-.25.59v6.59c0 .77.55 1.48 1.32 1.63L11.5 15c.16.03.32.03.49 0l5.66-1.01c.77-.15 1.32-.86 1.32-1.63V6.36a.75.75 0 0 0-.25-.59l-5.76-4.05ZM12 4.16l4.63 3.25L12 10.66l-4.63-3.25L12 4.16Z" />
+                            <path d="M12 15c-.17 0-.33.03-.49.07l-5.66 1.01a1.503 1.503 0 0 0-1.32 1.63v2.85c0 .24.16.45.4.52l6.23 1.66c.1.03.2.04.3 0l6.23-1.66c.24-.07.4-.28.4-.52v-2.85c0-.77-.55-1.48-1.32-1.63l-5.66-1.01c-.16-.04-.32-.07-.49-.07Z" />
+                        </svg>
+                    </button>
+                    
+
+                    <textarea
+                        id="prompt-input"
+                        rows="1"
+                        placeholder="Ask Quantel anything..."
+                        class="resize-none w-full py-3 pl-12 pr-12 bg-[#40414F] text-gray-100 placeholder-gray-400 rounded-xl border border-gray-600 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 overflow-hidden transition-all duration-300"
+                        oninput="autoExpand(this)"
+                        onkeydown="if(event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); sendMessage(); }"
+                    ></textarea>
+
+                    <button
+                        id="send-button"
+                        class="absolute right-2 bottom-2 p-2 rounded-lg text-gray-400 transition duration-200 disabled:opacity-40 disabled:cursor-not-allowed bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg hover:shadow-xl"
+                        onclick="sendMessage()"
+                        disabled
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
+                            <path d="M3.478 2.405a.75.75 0 0 0-.926.94l2.432 7.905H13.5a.75.75 0 0 1 0 1.5H4.984l-2.432 7.905a.75.75 0 0 0 .926.94 60.548 60.548 0 0 0 18.445-8.986.75.75 0 0 0 0-1.218A60.51 60.51 0 0 0 3.478 2.405Z" />
+                        </svg>
+                    </button>
+                </div>
+
+                <p class="text-xs text-center text-gray-500 mt-2">
+                    Quantel AI Interface | Don't worry if 0 internet!
+                </p>
+            </div>
+        </footer>
+    </main>
+    <script src="script.js"></script>
+    
+    <div id="system-prompt-modal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-75 z-50 flex items-center justify-center p-4 transition-opacity duration-300">
+        <div class="bg-gray-800 rounded-2xl w-full max-w-xl shadow-2xl transform transition-all p-6 border border-indigo-600">
+            <h3 class="text-xl font-bold text-white mb-4 flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6 mr-2 text-indigo-400">
+                    <path fill-rule="evenodd" d="M12.97 3.97a.75.75 0 0 1 1.06 0l7.5 7.5a.75.75 0 0 1 0 1.06l-7.5 7.5a.75.75 0 1 1-1.06-1.06l6.47-6.47H2.25a.75.75 0 0 1 0-1.5h17.19l-6.47-6.47a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" />
+                </svg>
+                System Persona / Context
+            </h3>
+            <p class="text-sm text-gray-400 mb-4">Define the model's tone, role, or constraints for this specific conversation. (e.g., "Act as a pirate captain.", "You are a professional Python coder.")</p>
+            
+            <textarea
+                id="modal-system-prompt-input"
+                rows="5"
+                class="w-full p-3 bg-gray-900 text-gray-200 rounded-lg border border-gray-700 focus:border-indigo-500 focus:outline-none resize-none"
+                placeholder="Enter the system prompt here (optional)..."
+            ></textarea>
+            
+            <div class="flex justify-end space-x-3 mt-5">
+                <button id="clear-system-prompt-btn" class="px-4 py-2 text-sm font-medium text-red-400 hover:text-red-500 rounded-lg transition duration-150">
+                    Clear
+                </button>
+                <button id="close-system-prompt-modal-btn" class="px-4 py-2 text-sm font-medium text-gray-300 bg-gray-700 rounded-lg hover:bg-gray-600 transition duration-150">
+                    Cancel
+                </button>
+                <button id="save-system-prompt-btn" class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition duration-150 shadow-md">
+                    Save Persona
+                </button>
+            </div>
+        </div>
+    </div>
+    </body>
+</html>
