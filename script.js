@@ -1,5 +1,5 @@
 // --- CONSTANTS ---
-const OLLAMA_SERVER_URL = "http://0.0.0.0:5000"; // Flask proxy
+const OLLAMA_SERVER_URL = "http://10.53.158.160:5000"; // Flask proxy
 const OLLAMA_PROXY_URL = OLLAMA_SERVER_URL; // Alias for clarity in suggestTitle
 const CHAT_MESSAGES = document.getElementById('chat-messages');
 const PROMPT_INPUT = document.getElementById('prompt-input');
@@ -1258,4 +1258,5 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.error("Initialization failed:", error);
     }
 });
+
 
